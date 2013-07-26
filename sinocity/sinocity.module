@@ -1,0 +1,124 @@
+<?php
+
+
+// get all sino city base data
+function getSinoCityData(){
+	$sino = new stdClass();
+	$sino->prov = $sino->city = array();
+	foreach(sinocity_load_multiple() as $item){
+		$item->cid < 100 ? ($sino->prov[$item->cid] = $item->name) : ($sino->city[$item->cid] = $item->name);
+	}
+	return $sino;
+}
+
+
+// load sinocity data
+function sinocity_load($cid){
+	$citys = sinocity_load_multiple(array($cid));
+	return reset($citys);
+}
+
+
+function sinocity_load_multiple($cids = array()){
+	$citys = array();
+	$base = db_select('sinocity')->fields('sinocity')->execute()->fetchAll();
+	foreach($base as $city){
+		if($city->cid > 100 && !empty($cids) && !in_array($city->cid, $cids)) break;
+		$citys[$city->cid] = $city;
+		$citys[$city->cid]->pname = empty($city->pid) ? NULL : $citys[$city->pid]->name;
+	}
+	return $citys;
+}
+
+
+function sinocity_field_info(){
+	return array('sinocity' => array(
+		'label' => '地址',
+		'description' => '选择所在省份和城市并填写具体地址',
+		'default_widget' => 'sinocity',
+		'default_formatter' => 'sinocity_default',
+	));
+}
+
+
+function sinocity_field_widget_info(){
+	return array('sinocity' => array(
+		'label' => '详细地址',
+		'field types' => array('sinocity'),
+		'multiple values' => FIELD_BEHAVIOR_DEFAULT,
+	));
+}
+
+
+function sinocity_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element){
+	$element += array(
+		'#type' => $instance['widget']['type'],
+		'#default_value' => isset($items[$delta]) ? $items[$delta] : '',
+	);
+	return $element;
+}
+
+
+function sinocity_element_info(){
+	$type['sinocity'] = array(
+		'#input' => TRUE,
+		'#process' => array('sinocityProcess'),
+		'#theme_wrappers' => array('form_element'),
+		'#hidePart' => array(),				// for hide some field prov,city,addr
+	);
+	return $type;
+}
+
+
+function sinocityProcess($element, $form_state, $complete_form){
+	//dsm($element);
+	$sino = getSinoCityData();
+	$vals = $element['#value'];
+	$path = drupal_get_path('module', 'sinocity');
+	drupal_add_js(drupal_get_path('module', 'sinocity').'/sinocity.js');
+	//
+	$element['prov'] = array(
+		'#type' => 'select',
+		'#options' => $sino->prov,
+		'#attributes' => array('class'=>array('prov')),
+		'#theme_wrappers' => NULL,
+		'#default_value' => isset($element['#value']['prov']) ? $element['#value']['prov'] : NULL,
+	);
+	$element['city'] = array(
+		'#type' => 'select',
+		'#options' => $sino->city,
+		'#attributes' => array('class'=>array('city')),
+		'#theme_wrappers' => NULL,
+		'#default_value' => isset($element['#value']['city']) ? $element['#value']['city'] : NULL,
+	);
+	$element['addr'] = array(
+		'#type' => 'textfield',
+		'#access' => !in_array('addr', $element['#hidePart']),
+		'#attributes' => array('placeholder'=>'详细地址', 'autocomplete'=>'off'),
+		'#theme_wrappers' => NULL,
+		'#default_value' => isset($element['#value']['addr']) ? $element['#value']['addr'] : NULL,
+	);
+	return $element;
+}
+
+
+function sinocity_field_is_empty($item, $field){}
+
+
+function sinocity_field_formatter_info(){
+	return array('sinocity_default' => array('label'=>t('Default'), 'field types'=>array('sinocity')));
+}
+
+
+function sinocity_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display){
+	$element = array();
+	$city = sinocity_load_multiple();
+	if($display['type'] == 'sinocity_default'){
+		foreach($items as $delta => $item){
+			$element[$delta] = array('#markup' => check_plain($city[$item['prov']]->name.' '.$city[$item['city']]->name.' '.$item['addr']));
+		}
+	}
+	return $element;
+}
+
+

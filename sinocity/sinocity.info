@@ -1,0 +1,5 @@
+name = Sino City
+description = Defines a field type for the China Citys and Address. More Info:<a href="http://nan.im/blog/1382" target="_blank"> nan.im </a>
+core = 7.x
+package = Fields
+version = VERSION

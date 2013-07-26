@@ -1,0 +1,67 @@
+<?php
+
+
+/**
+ * Implements hook_field_schema().
+ */
+function sinocity_schema(){
+	$schema['sinocity'] = array(
+		'fields' => array(
+			'cid'  => array('type'=>'int', 'unsigned'=>TRUE, 'not null'=>TRUE, 'default' => 0),
+			'pid'  => array('type'=>'int', 'unsigned'=>TRUE, 'not null'=>TRUE, 'default' => 0),
+			'name' => array('type'=>'varchar', 'length' => 16),
+		),
+		'primary key' => array('cid'),
+	);
+	return $schema;
+}
+
+
+/**
+  * Implement hook_enable()
+  */
+function sinocity_enable(){
+	// make sure the old database safe !!
+	if(db_query('SELECT * FROM {sinocity}')->rowCount() > 0){
+		drupal_set_message('模块 SinoCity 使用的 sinocity 表内有数据！<br>如果您不确定该表的来源，请注意备份数据！！<br>如果您确定该表是由 SinoCity 模块生成，请卸载 SinoCity 模块后重新尝试开启。', 'error');
+		module_disable(array('sinocity'));
+		return;
+	}
+	// Initialization SinoCity database !
+	$json = file_get_contents(drupal_get_path('module','sinocity').'/sinocity.json');
+	$data = json_decode(str_replace("\n", "", $json));
+	// insert the new data
+	$base = db_insert('sinocity')->fields(array('cid','pid','name'));
+	foreach($data as $prov){
+		$pid = $prov[1];
+		$base->values(array('cid'=>$prov[1], 'pid'=>0, 'name'=>$prov[0]));
+		$city = array_slice($prov, 2, NULL, TRUE);
+		foreach($city as $cid=>$txt):
+			$cid = intval($pid.str_pad(strval($cid), 2, '0', STR_PAD_LEFT));
+			$base->values(array('cid'=>$cid, 'pid'=>$pid, 'name'=>$txt));
+		endforeach;
+	}
+	$base->execute();
+	//
+	$rows = db_query('SELECT * FROM {sinocity}')->rowCount();
+	if($rows > 0) drupal_set_message('数据更新！共有 '.$rows.' 条数据添加！');
+	return;
+}
+
+
+/**
+ * Implements hook_field_schema().
+ */
+function sinocity_field_schema($field){
+	return array(
+		'columns' => array(
+			'prov' => array('type'=>'int', 'unsigned'=>TRUE, 'not null'=>TRUE, 'default' => 0),
+			'city' => array('type'=>'int', 'unsigned'=>TRUE, 'not null'=>TRUE, 'default' => 0),
+			'addr' => array('type'=>'varchar', 'length'=>64),
+		),
+	);
+}
+
+
+
+
