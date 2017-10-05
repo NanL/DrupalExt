@@ -1,0 +1,8 @@
+name = evernote
+core = 7.x
+version = 7.x-0.1
+package = nan
+dependencies[] = system
+description = get Evernote.com YinXiang.com open note.
+
+files[] = evernote.module

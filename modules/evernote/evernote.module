@@ -1,0 +1,97 @@
+<?php
+
+
+
+function evernote_menu(){
+
+    $menu['user/%user/link/evernote'] = array(
+        'title' => t('Evernote'),
+        'page callback' => 'pageUserLinkEvernote',
+        'page arguments' => array(1, 3),
+        'access callback' => 'user_edit_access',
+        'access arguments' => array(1),
+        'type' => MENU_LOCAL_TASK,
+        'file' => 'evernote.inc',
+    );
+
+    $menu['user/%user/link/yinxiang'] = $menu['user/%user/link/evernote'];
+    $menu['user/%user/link/yinxiang']['title'] = t('YinXiang');
+
+    return $menu;
+}
+
+
+function evernote_user_view($user, $view_mode, $langcode){
+/*
+    $live = empty($user->metadata['evernote:edam_expires']) ? NULL : (int)($user->metadata['evernote:edam_expires']/1000);
+
+    $html = $live > time() ? 'Expires Time: '.format_date($live).' Disconnect ?' : l(t('Connect to Evernote'), 'user/'.$user->uid.'/link/evernote');
+
+    $user->content['summary']['evernote'] = array(
+      '#type' => 'user_profile_item',
+      '#title' => t('Evernote'),
+      '#markup' => $html,
+      '#attributes' => array('class' => array('evernote')),
+    );
+*/
+}
+
+
+function evernote_node_presave($node){
+
+    if(empty($node->edam) || empty($node->note)) return;
+
+    $filt = array(
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd">',
+        '<en-note>','</en-note>',
+    );
+
+    // $node->uid = $node->note->uid;
+    // $node->nid = $node->note->nid;
+    // $node->type = 'note';
+    $node->title = $node->edam->title;
+    // $node->status = 1;   //
+    // $node->is_new = empty($node->nid);
+    $node->created = intval($node->edam->created/1000);
+    $node->changed = intval($node->edam->updated/1000);
+    $node->language = preg_match('/[\x7f-\xff]/', $node->title) ? 'zh-hans' : 'en';
+
+    $node->body['und'][0]['value'] = trim(str_replace($filt,'',$node->edam->content));
+    // $node->body['und'][0]['format'] = 3;
+    // $node->body['und'][0]['summary'] = $new_node['teaser'];
+
+}
+
+
+function evernote_cron(){
+
+    require_once(dirname(__FILE__).'/evernote.inc');
+
+    $type = array('sandbox','evernote','yinxiang');
+    $auth = db_query_range('SELECT * FROM {note_auth} WHERE type IN (:type) ORDER BY sync ASC', 0, 1,
+        array(':type'=>$type))->fetch();
+
+    if(!empty($auth->uid)){
+        evernote_cron_user($auth);      // evernote.inc
+        db_query('UPDATE {note_auth} SET sync = (:sync) WHERE uid = (:uid) AND type = (:type)',
+            array(':uid'=>$auth->uid, ':type'=>$auth->type, ':sync'=>REQUEST_TIME));
+    }
+
+    //
+    $meta = db_query_range('SELECT n.*, u.auth FROM {note_node} n INNER JOIN {note_auth} u ON n.uid = u.uid AND n.type = u.type WHERE n.type IN (:type) ORDER BY n.sync ASC', 0, 1,
+        array(':type'=>$type))->fetch();
+
+    if(!empty($meta->guid)){
+        evernote_cron_node($meta);      // evernote.inc
+        db_query('UPDATE {note_node} SET sync = (:sync) WHERE guid = (:guid) AND type = (:type)',
+            array(':guid'=>$meta->guid, ':type'=>$meta->type, ':sync'=>REQUEST_TIME));
+    }
+
+}
+
+
+
+
+
+

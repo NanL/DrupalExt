@@ -1,0 +1,98 @@
+<?php
+
+
+function maincore_menu(){
+
+    $menu['user/%user/link'] = array(
+        'title' => t('link'),
+        'page callback' => 'pageUserLink',
+        'page arguments' => array(1),
+        'access callback' => 'user_edit_access',
+        'access arguments' => array(1),
+        'type' => MENU_LOCAL_TASK,
+        'file' => 'pageUser.inc',
+    );
+
+    $menu['user/%user/link/view'] = array(
+        'title' => t('link'),
+        'weight' => -9,
+        'type' => MENU_DEFAULT_LOCAL_TASK,
+    );
+
+    return $menu;
+}
+
+
+function maincore_menu_alter(&$items){
+
+    $items['user']['title'] = '我的主页';
+    // $items['user']['title callback'] = '';              // default is user_menu_title();
+    $items['user']['page callback'] = 'drupal_get_form';
+    $items['user']['page arguments'] = array('user_login');
+
+    $items['user/%user']['page callback'] = 'pageUserHome';
+    $items['user/%user']['page arguments'] = array(1);
+    $items['user/%user']['access callback'] = TRUE;
+    $items['user/%user']['file'] = 'pageUser.inc';
+    $items['user/%user']['file path'] = drupal_get_path('module', 'maincore');
+
+    // $items['user/%user/edit']['title'] = '设置';
+    // $items['user/%user/view']['title'] = '主页';
+    // $items['user/%user/track']['title'] = '历史';
+}
+
+
+function maincore_user_load($users){
+
+    $result = db_query('SELECT * FROM {note_auth} WHERE uid IN (:uids)',
+        array(':uids'=>array_keys($users)));
+
+    foreach ($result as $record) {
+        $users[$record->uid]->auths[$record->type] = array(
+            'born' => $record->born,
+            'sync' => $record->sync,
+            'life' => $record->life,
+            'auth' => unserialize($record->auth),
+        );
+    }
+
+}
+
+
+function maincore_node_load($nodes, $types){
+
+    if(!in_array('note',$types)) return;
+
+    $result = db_query('SELECT * FROM {note_node} WHERE nid IN (:nids)',
+        array(':nids'=>array_keys($nodes)));
+
+    foreach ($result as $record) {
+        $nodes[$record->nid]->note = $record;
+    }
+
+}
+
+
+function hook_user_delete($user){
+    db_delete('note_auth')->condition('uid', $user->uid)->execute();
+}
+
+
+function maincore_node_delete($node){
+    db_delete('note_node')->condition('nid', $node->nid)->execute();
+}
+
+
+function maincore_theme($existing, $type, $theme, $path){
+    return array(
+        'userLink' => array('variables'=>array('user'=>NULL),
+    );
+}
+
+
+
+
+
+
+
+

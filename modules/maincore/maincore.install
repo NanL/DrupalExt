@@ -1,0 +1,48 @@
+<?php
+
+
+/**
+ * Implements hook_schema().
+ */
+function maincore_schema(){
+
+    $schema['note_auth'] = array(
+        'fields' => array(
+            'uid'  => array('type'=>'int', 'not null'=>TRUE, 'default'=>0),
+            'type' => array('type'=>'varchar', 'length'=>16, 'default'=>0),
+            'born' => array('type'=>'int', 'not null'=>TRUE, 'default'=>0),
+            'life' => array('type'=>'int', 'not null'=>TRUE, 'default'=>0),
+            'sync' => array('type'=>'int', 'not null'=>TRUE, 'default'=>0),
+            'auth' => array('type'=>'blob'),
+        ),
+        'primary key' => array('uid','type'),
+    );
+
+    $schema['note_node'] = array(
+        'fields' => array(
+            'nid'  => array('type'=>'int', 'not null'=>TRUE, 'default'=>0),
+            'uid'  => array('type'=>'int', 'not null'=>TRUE, 'default'=>0),
+            'time' => array('type'=>'int', 'not null'=>TRUE, 'default'=>0),
+            'sync' => array('type'=>'int', 'not null'=>TRUE, 'default'=>0),
+            'type' => array('type'=>'varchar', 'length'=>16, 'not null'=>TRUE, 'default'=>''),
+            'guid' => array('type'=>'varchar', 'length'=>64, 'not null'=>TRUE, 'default'=>''),
+        ),
+        'primary key' => array('nid','guid'),
+    );
+
+    $schema['note_temp'] = drupal_get_schema_unprocessed('system','cache');
+    $schema['note_temp']['description'] = 'Cache table for the Note.';
+
+    return $schema;
+
+}
+
+
+function maincore_install(){
+    // db_add_field('node', 'guid', array('type'=>'varchar', 'length'=>128));
+}
+
+
+function maincore_uninstall(){
+    // db_drop_field('node', 'guid');
+}

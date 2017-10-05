@@ -1,0 +1,9 @@
+name = maincore
+core = 7.x
+version = 7.x-0.1
+package = nan
+dependencies[] = system
+stylesheets[all][] = maincore.css
+description = The Main Core.
+
+files[] = maincore.module
